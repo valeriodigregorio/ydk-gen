@@ -51,8 +51,6 @@ function usage {
     echo "Environment variables:"
     echo "YDKGEN_HOME         specifies location of ydk-gen git repository;"
     echo "                    if not set, $HOME/ydk-gen is assumed"
-    echo "PYTHON_VENV         specifies location of python virtual environment;"
-    echo "                    if not set, $HOME/venv is assumed"
     echo "GOROOT              specifies installation directory of go software;"
     echo "                    if not set, /usr/local/go is assumed"
     echo "GOPATH              specifies location of golang directory;"
@@ -64,16 +62,6 @@ function usage {
 }
 
 function check_python_installation {
-  if [[ -z ${PYTHON_VENV} ]]; then
-    PYTHON_VENV=${HOME}/venv
-    print_msg "Python virtual environment location is set to ${PYTHON_VENV}"
-  fi
-  if [[ ! -d ${PYTHON_VENV} ]]; then
-    print_msg "Creating Python3 virtual environment in ${PYTHON_VENV}"
-    run_cmd python3 -m venv ${PYTHON_VENV}
-  fi
-  run_cmd source ${PYTHON_VENV}/bin/activate
-
   print_msg "Checking python version and installation"
   python --version
   status=$?
@@ -380,5 +368,4 @@ install_ydk_py
 
 install_ydk_go
 
-deactivate
 cd ${curr_dir}
