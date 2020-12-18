@@ -24,6 +24,7 @@
 #define GNMI_UTIL_HPP
 
 #include <ydk/path_api.hpp>
+#include "gnmi_path_api.hpp"
 
 #include "gnmi.pb.h"
 
@@ -48,13 +49,15 @@ struct PathElem
 void parse_entity_to_prefix_and_paths(Entity& entity, std::pair<std::string, std::string> & prefix, std::vector<PathElem> & path_container);
 void parse_entity_prefix(Entity& entity, std::pair<std::string, std::string> & prefix);
 
-void parse_entity_to_path(Entity& entity, gnmi::Path* path);
-void parse_entity_prefix(Entity& entity, gnmi::Path* path);
+void parse_entity_to_path(Entity& entity, Origin origin, gnmi::Path* path);
+void parse_entity_prefix(Entity& entity, Origin origin, gnmi::Path* path);
 
-void parse_prefix_to_path(const std::string& prefix, gnmi::Path* path);
+void parse_prefix_to_path(const std::string& prefix, Origin origin, gnmi::Path* path);
+
+bool origin_is_prefix(const std::string& origin);
 
 namespace path {
-    void parse_datanode_to_path(DataNode* dn, gnmi::Path* path);
+    void parse_datanode_to_path(DataNode* dn, Origin origin, gnmi::Path* path);
 }
 
 }

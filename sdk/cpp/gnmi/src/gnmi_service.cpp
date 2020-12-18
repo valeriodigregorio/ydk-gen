@@ -121,7 +121,9 @@ gNMIService::get(gNMIServiceProvider& provider, Entity& filter, const string & o
     }
     auto top_entity = get_top_entity(&filter);
     gnmi::Path* path = new gnmi::Path;
-    parse_entity_to_path(*top_entity, path);
+    const path::gNMISession& session = static_cast<const path::gNMISession&>(provider.get_session());
+    Origin origin = session.get_origin();
+    parse_entity_to_path(*top_entity, origin, path);
     filter.yfilter = original_yfilter;
     vector<gnmi::Path*> path_list;
     path_list.push_back(path);
@@ -162,7 +164,9 @@ gNMIService::get(gNMIServiceProvider & provider, vector<Entity*> & filter_list, 
         }
         auto top_entity = get_top_entity(filter);
         gnmi::Path* path = new gnmi::Path;
-        parse_entity_to_path(*top_entity, path);
+        const path::gNMISession& session = static_cast<const path::gNMISession&>(provider.get_session());
+        Origin origin = session.get_origin();
+        parse_entity_to_path(*top_entity, origin, path);
         filter->yfilter = original_yfilter;
         path_list.push_back(path);
         if (top_entity->is_top_level_class && filter->ignore_validation)
@@ -240,11 +244,14 @@ static GnmiClientRequest build_set_request(gNMIServiceProvider& provider, Entity
     gnmi::Path* path = new gnmi::Path;
     string payload{};
 
+    const path::gNMISession& session = static_cast<const path::gNMISession&>(provider.get_session());
+    Origin origin = session.get_origin();
+
     if (operation == "delete") {
-        parse_entity_to_path(entity, path);
+        parse_entity_to_path(entity, origin, path);
     }
     else {
-        parse_entity_prefix(entity, path);
+        parse_entity_prefix(entity, origin, path);
         payload = get_data_payload(provider, entity);
         if (entity.is_top_level_class) {
             // Remove prefix part from the payload
@@ -366,7 +373,9 @@ void gNMIService::subscribe(gNMIServiceProvider& provider,
 
     GnmiClientSubscription sub;
     sub.path = new gnmi::Path;
-    parse_entity_to_path(*subscription.entity, sub.path);
+    const path::gNMISession& session = static_cast<const path::gNMISession&>(provider.get_session());
+    Origin origin = session.get_origin();
+    parse_entity_to_path(*subscription.entity, origin, sub.path);
     sub.subscription_mode = subscription.subscription_mode;
     sub.sample_interval = subscription.sample_interval;
     sub.suppress_redundant = subscription.suppress_redundant;
@@ -400,7 +409,9 @@ void gNMIService::subscribe(gNMIServiceProvider& provider,
         check_subscription_params(*subscription);
         GnmiClientSubscription sub;
         sub.path = new gnmi::Path;
-        parse_entity_to_path(*subscription->entity, sub.path);
+        const path::gNMISession& session = static_cast<const path::gNMISession&>(provider.get_session());
+        Origin origin = session.get_origin();
+        parse_entity_to_path(*subscription->entity, origin, sub.path);
         sub.subscription_mode = subscription->subscription_mode;
         sub.sample_interval = subscription->sample_interval;
         sub.suppress_redundant = subscription->suppress_redundant;

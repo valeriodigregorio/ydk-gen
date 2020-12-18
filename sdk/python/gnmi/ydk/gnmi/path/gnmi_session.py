@@ -19,6 +19,7 @@ gNMISession Python wrapper.
 """
 
 from ydk_gnmi_.path import gNMISession as _gNMISession
+from ydk_gnmi_ import Origin
 import sys
 
 
@@ -28,7 +29,8 @@ class gNMISession(_gNMISession):
 
     def __init__(self,
                  repo, address, port, username, password,
-                 server_certificate=None, private_key=None):
+                 server_certificate=None, private_key=None,
+                 origin=None):
 
         if port is None:
             port = 57400
@@ -36,13 +38,15 @@ class gNMISession(_gNMISession):
             server_certificate = ""
         if private_key is None:
             private_key = ""
+        if origin is None:
+            origin = Origin.MODULE
 
         if sys.version_info > (3,):
             self._super = super()
         else:
             self._super = super(gNMISession, self)
         self._super.__init__(repo, address, port, username, password,
-                             server_certificate, private_key)
+                             server_certificate, private_key, origin)
 
     def get_root_schema(self):
         return self._super.get_root_schema()
@@ -52,3 +56,9 @@ class gNMISession(_gNMISession):
 
     def subscribe(self, rpc, out_func=None, poll_func=None):
         return self._super.subscribe(rpc, out_func, poll_func)
+
+    def get_origin(self):
+        return self._super.get_origin()
+
+    def set_origin(self, origin):
+        return self._super.set_origin(origin)
