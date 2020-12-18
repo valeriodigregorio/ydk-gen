@@ -88,8 +88,8 @@ function install_dependencies {
     run_cmd sudo yum install git which libxml2-devel libxslt-devel libssh-devel libtool gcc-c++ pcre-devel -y > /dev/null
     run_cmd sudo yum install cmake3 wget curl-devel unzip make java doxygen mlocate -y > /dev/null
 #     sudo yum install python-devel python-pip -y
-    run_cmd sudo yum install python3-devel python3-venv -y
-    run_cmd sudo yum install rpm-build redhat-lsb lcov -y > /dev/null
+    run_cmd sudo yum install python3-devel -y
+    run_cmd sudo yum install rpm-build redhat-lsb -y > /dev/null
     run_cmd sudo yum install valgrind -y
 }
 
@@ -156,4 +156,4 @@ check_install_go
 install_confd
 install_openssl
 
-updatedb
+sudo updatedb
