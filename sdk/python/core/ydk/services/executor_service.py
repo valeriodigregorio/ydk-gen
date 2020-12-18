@@ -22,6 +22,7 @@ class ExecutorService(_ExecutorService):
     """ Python wrapper for ExecutorService
     """
     def __init__(self):
+        _ExecutorService.__init__()
         self._es = _ExecutorService()
 
     def execute_rpc(self, provider, entity, top_entity=None):
