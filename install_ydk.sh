@@ -62,12 +62,6 @@ function usage {
 }
 
 function check_python_installation {
-  if [[ ! -d ${YDKGEN_HOME}/venv ]]; then
-    print_msg "Creating Python3 virtual environment in ${YDKGEN_HOME}/venv"
-    run_cmd python3 -m venv ${HOME}/venv
-  fi
-  run_cmd source ${HOME}/venv/bin/activate
-
   print_msg "Checking python version and installation"
   python --version
   status=$?
@@ -374,5 +368,4 @@ install_ydk_py
 
 install_ydk_go
 
-deactivate
 cd ${curr_dir}
