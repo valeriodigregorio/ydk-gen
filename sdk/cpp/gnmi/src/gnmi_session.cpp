@@ -47,15 +47,19 @@ namespace path
 {
 
 gNMISession::gNMISession(Repository & repo,
-                   const std::string& address, int port,
-                   const std::string& username,
-                   const std::string& password,
-                   const std::string & server_certificate, const std::string & private_key)
+						 const std::string& address,
+						 int port,
+						 const std::string& username,
+						 const std::string& password,
+						 const std::string & server_certificate,
+						 const std::string & private_key,
+						 Origin origin)
 {
     // Correct default settings
     if (port == 0)
         port = 57400;
 
+    this->origin = origin;
     client = make_unique<gNMIClient>(address, port, username, password, server_certificate, private_key);
 
     server_capabilities = client->get_capabilities();
@@ -152,7 +156,7 @@ shared_ptr<DataNode> gNMISession::invoke(DataNode& datanode) const
     return nullptr;
 }
 
-static void populate_path_from_payload(gnmi::Path* path, const string & payload, RootSchemaNode & root_schema)
+static void populate_path_from_payload(gnmi::Path* path, Origin origin, const string & payload, RootSchemaNode & root_schema)
 {
     Codec s{};
     auto root_dn = s.decode(root_schema, payload, EncodingFormat::JSON);
@@ -161,10 +165,10 @@ static void populate_path_from_payload(gnmi::Path* path, const string & payload,
         throw(YError{"Problems deserializing JSON payload"});
     }
     auto child = (root_dn->get_children())[0].get();
-    parse_datanode_to_path(child, path);
+    parse_datanode_to_path(child, origin, path);
 }
 
-static GnmiClientRequest build_set_request(RootSchemaNode & root_schema, DataNode* request, const string & operation)
+static GnmiClientRequest build_set_request(RootSchemaNode & root_schema, DataNode* request, const string & operation, Origin origin)
 {
     GnmiClientRequest one_request;
     one_request.type = "set";
@@ -192,13 +196,13 @@ static GnmiClientRequest build_set_request(RootSchemaNode & root_schema, DataNod
 
     one_request.path = new gnmi::Path();
     if (operation == "delete") {
-        populate_path_from_payload(one_request.path, one_request.payload, root_schema);
+        populate_path_from_payload(one_request.path, origin, one_request.payload, root_schema);
     }
     else {
         auto pos = one_request.payload.find("{", 4);
         if (pos != string::npos) {
             string prefix = one_request.payload.substr(2, pos-4);
-            parse_prefix_to_path(prefix, one_request.path);
+            parse_prefix_to_path(prefix, origin, one_request.path);
             one_request.payload = one_request.payload.substr(pos, one_request.payload.length()-pos-1);
         }
     }
@@ -212,7 +216,7 @@ bool gNMISession::handle_set(Rpc& ydk_rpc) const
     auto delete_list = ydk_rpc.get_input_node().find("delete");
     if (!delete_list.empty()) {
         for (auto request : delete_list) {
-            GnmiClientRequest one_request = build_set_request(get_root_schema(), request.get(), "delete");
+            GnmiClientRequest one_request = build_set_request(get_root_schema(), request.get(), "delete", origin);
             setRequest.push_back(one_request);
         }
     }
@@ -220,7 +224,7 @@ bool gNMISession::handle_set(Rpc& ydk_rpc) const
     auto replace_list = ydk_rpc.get_input_node().find("replace");
     if (!replace_list.empty()) {
         for (auto request : replace_list) {
-            GnmiClientRequest one_request = build_set_request(get_root_schema(), request.get(), "replace");
+            GnmiClientRequest one_request = build_set_request(get_root_schema(), request.get(), "replace", origin);
             setRequest.push_back(one_request);
         }
     }
@@ -228,7 +232,7 @@ bool gNMISession::handle_set(Rpc& ydk_rpc) const
     auto update_list = ydk_rpc.get_input_node().find("update");
     if (!update_list.empty()) {
         for (auto request : update_list) {
-            GnmiClientRequest one_request = build_set_request(get_root_schema(), request.get(), "update");
+            GnmiClientRequest one_request = build_set_request(get_root_schema(), request.get(), "update", origin);
             setRequest.push_back(one_request);
         }
     }
@@ -277,7 +281,7 @@ gNMISession::handle_get(Rpc& rpc) const
         one_request.payload = entity_node->get_value();
 
         one_request.path = new gnmi::Path();
-        populate_path_from_payload(one_request.path, one_request.payload, get_root_schema());
+        populate_path_from_payload(one_request.path, origin, one_request.payload, get_root_schema());
 
         getRequest.push_back(one_request);
     }
@@ -382,7 +386,7 @@ gNMISession::handle_subscribe(Rpc& rpc,
         }
         DataNode* entity_node = entity_vector[0].get();
         sub.path = new gnmi::Path();
-        populate_path_from_payload(sub.path, entity_node->get_value(), *root_schema);
+        populate_path_from_payload(sub.path, origin, entity_node->get_value(), *root_schema);
 
         sub.subscription_mode = "ON_CHANGE";
         auto list_mode_dn = one_subscription->find("subscription-mode");

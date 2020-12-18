@@ -34,6 +34,11 @@
 
 #include "gnmi.pb.h"
 
+#define ORIGIN_BLANK ""
+#define ORIGIN_OPENCONFIG "openconfig"
+#define ORIGIN_RFC7951 "rfc7951"
+#define ORIGIN_LEGACY "legacy"
+
 using namespace gnmi;
 
 namespace grpc {
@@ -45,16 +50,28 @@ namespace ydk {
 
 class gNMIClient;
 
+
+enum class Origin {   // ORIGIN       | PREFIX
+    MODULE,           // Module name  | None
+    BLANK,            // Blank        | None
+    OPENCONFIG,       // "openconfig" | None
+    RFC7951,          // "rfc7951"    | Module name
+    LEGACY            // "legacy"     | Module prefix
+};
+
 namespace path {
 
 class gNMISession : public Session {
   public:
 
     gNMISession(Repository & repo,
-                const std::string& address, int port,
-                const std::string& username, const std::string& password,
-                const std::string & server_certificate="",
-                const std::string & private_key="");
+                const std::string& address,
+                int port,
+                const std::string& username,
+                const std::string& password,
+                const std::string& server_certificate = "",
+                const std::string& private_key = "",
+                Origin origin = Origin::MODULE);
 
     ~gNMISession();
 
@@ -71,6 +88,8 @@ class gNMISession : public Session {
 
     std::shared_ptr<path::DataNode> handle_get_reply(std::vector<std::string> reply_val) const;
     gNMIClient & get_client() const;
+    Origin get_origin() const { return origin; }
+    void set_origin(Origin origin) { this->origin = origin; }
 
   private:
     bool handle_set(path::Rpc& ydk_rpc) const;
@@ -86,6 +105,7 @@ class gNMISession : public Session {
     std::shared_ptr<ModelProvider> model_provider;
     std::shared_ptr<RootSchemaNode> root_schema;
     std::vector<std::string> server_capabilities;
+    Origin origin;
 };
 
 }	// namespace path

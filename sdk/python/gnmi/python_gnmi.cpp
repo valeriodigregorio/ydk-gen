@@ -105,20 +105,29 @@ PYBIND11_MODULE(ydk_gnmi_, ydk_gnmi)
     module services  = ydk_gnmi.def_submodule("services", "services module");
     module path      = ydk_gnmi.def_submodule("path", "path module");
 
+    enum_<ydk::Origin>(ydk_gnmi, "Origin")
+        .value("MODULE", ydk::Origin::MODULE)
+        .value("BLANK", ydk::Origin::BLANK)
+        .value("OPENCONFIG", ydk::Origin::OPENCONFIG)
+        .value("RFC7951", ydk::Origin::RFC7951)
+        .value("LEGACY", ydk::Origin::LEGACY)
+        .export_values();
+
     class_<ydk::path::Session>(path, "Session", module_local())
         .def("get_root_schema", &ydk::path::Session::get_root_schema, return_value_policy::reference)
         .def("invoke", (std::shared_ptr<ydk::path::DataNode> (ydk::path::Session::*)(ydk::path::Rpc& rpc) const) &ydk::path::Session::invoke, return_value_policy::reference)
         .def("invoke", (std::shared_ptr<ydk::path::DataNode> (ydk::path::Session::*)(ydk::path::DataNode& rpc) const) &ydk::path::Session::invoke, return_value_policy::reference);
 
     class_<ydk::path::gNMISession, ydk::path::Session>(path, "gNMISession")
-        .def(init<ydk::path::Repository&, const std::string&, int, const std::string&, const std::string&, const std::string&, const std::string&>(),
+        .def(init<ydk::path::Repository&, const std::string&, int, const std::string&, const std::string&, const std::string&, const std::string&, ydk::Origin>(),
              arg("repo"),
              arg("address"),
              arg("port"),
              arg("username"),
              arg("password"),
              arg("server_certificate")="",
-             arg("private_key")="")
+             arg("private_key")="",
+             arg("origin")=ydk::Origin::MODULE)
         .def("get_root_schema", &ydk::path::gNMISession::get_root_schema, return_value_policy::reference)
         .def("invoke", (std::shared_ptr<ydk::path::DataNode> (ydk::path::gNMISession::*)(ydk::path::Rpc&) const)
              &ydk::path::gNMISession::invoke, arg("rpc"), return_value_policy::reference)
@@ -129,7 +138,9 @@ PYBIND11_MODULE(ydk_gnmi_, ydk_gnmi)
              &ydk::path::gNMISession::invoke_subscribe,
                                   arg("rpc"),
                                   arg("output_callback_function")=nullptr,
-                                  arg("poll_callback_function")=nullptr);
+                                  arg("poll_callback_function")=nullptr)
+        .def("get_origin", (ydk::Origin (ydk::path::gNMISession::*) (void) const) &ydk::path::gNMISession::get_origin, return_value_policy::reference)
+        .def("set_origin", (void (ydk::path::gNMISession::*)(ydk::Origin origin)) &ydk::path::gNMISession::set_origin, arg("origin"));
 
     class_<ydk::ServiceProvider>(providers, "ServiceProvider", module_local())
         .def("get_encoding", &ydk::ServiceProvider::get_encoding, return_value_policy::reference)

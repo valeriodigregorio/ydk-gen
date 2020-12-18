@@ -15,5 +15,6 @@
 # ------------------------------------------------------------------
 
 from .gnmi_session import gNMISession
+from ydk_gnmi_ import Origin
 
-__all__ = [ "gNMISession" ]
+__all__ = [ "gNMISession", "Origin" ]
