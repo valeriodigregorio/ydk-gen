@@ -42,6 +42,7 @@ class CRUDService(_CrudService):
         Instance of YError in case of operation failure fails.
     """
     def __init__(self):
+        _CrudService.__init__()
         self._crud = _CrudService()
 
     @_check_argument

@@ -27,6 +27,7 @@ class NetconfService(_NetconfService):
     """ Python wrapper for NetconfService
     """
     def __init__(self):
+        _NetconfService.__init__()
         self._ns = _NetconfService()
 
     def cancel_commit(self, provider, persist_id=None):

@@ -29,6 +29,7 @@ class gNMIService(_gNMIService):
     """ Python wrapper for gNMIService
     """
     def __init__(self):
+        _gNMIService.__init__()
         self._gs = _gNMIService()
 
     def capabilities(self, provider):
