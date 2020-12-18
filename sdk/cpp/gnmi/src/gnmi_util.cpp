@@ -246,14 +246,14 @@ namespace path {
 vector<string> segmentalize(const string& path);
 }
 
-void parse_entity_prefix(Entity& entity, gnmi::Path* path)
+void parse_entity_prefix(Entity& entity, Origin origin, gnmi::Path* path)
 {
     // Add origin and first container to the path
     EntityPath root_path = get_entity_path(entity, nullptr);
     auto full_path = root_path.path;
     vector<string> segments = ydk::path::segmentalize(full_path);
     YLOG_DEBUG("parse_entity_prefix: Entity path: '{}'", full_path);
-    parse_prefix_to_path(segments[0], path);
+    parse_prefix_to_path(segments[0], origin, path);
     auto segment_path = entity.get_segment_path();
     for (size_t i=1; i < segments.size(); i++) {
         if (segments[i] == segment_path)
@@ -262,10 +262,10 @@ void parse_entity_prefix(Entity& entity, gnmi::Path* path)
     }
 }
 
-void parse_entity_to_path(Entity& entity, gnmi::Path* path)
+void parse_entity_to_path(Entity& entity, Origin origin, gnmi::Path* path)
 {
     // Add origin and first container to the path
-    parse_entity_prefix(entity, path);
+    parse_entity_prefix(entity, origin, path);
 
     // Add children path
     if (entity.is_top_level_class)
@@ -274,23 +274,62 @@ void parse_entity_to_path(Entity& entity, gnmi::Path* path)
         parse_entity(entity, path);
 }
 
-void parse_prefix_to_path(const string& prefix, gnmi::Path* path)
+void parse_prefix_to_path(const string& prefix, Origin origin, gnmi::Path* path)
 {
     // Add origin and first container to the path
-    string mod = prefix;
-    string con = {};
-    auto p = prefix.find(":");
-    if (p != string::npos) {
-        mod = prefix.substr(0, p);
-        con = prefix.substr(p+1);
-        YLOG_DEBUG("parse_prefix_to_path: Got data node path prefix: '{}:{}'", mod, con);
-        path->set_origin(mod);
-        add_path_elem(path, con);
-    }
-    else {
-        YLOG_DEBUG("parse_prefix_to_path: Got unexpected data node path: '{}', missing prefix.", prefix);
-        add_path_elem(path, mod);
-    }
+	YLOG_DEBUG("parse_prefix_to_path: Got data node path: '{}'.", prefix);
+
+    string mod = "";
+    string con = prefix;
+
+	switch(origin) {
+		case Origin::MODULE: {
+			auto p = prefix.find(":");
+			if (p == string::npos) {
+				std::string msg = "parse_prefix_to_path: Got unexpected data node path: " + prefix + ", missing prefix.";
+				YLOG_ERROR(msg.c_str());
+				throw new std::runtime_error(msg);
+			}
+			mod = prefix.substr(0, p);
+			con = prefix.substr(p+1);
+			path->set_origin(mod);
+			add_path_elem(path, con);
+			break;
+		}
+		case Origin::BLANK: {
+			path->set_origin(ORIGIN_BLANK);
+			add_path_elem(path, con);
+			break;
+		}
+		case Origin::OPENCONFIG: {
+			path->set_origin(ORIGIN_OPENCONFIG);
+			add_path_elem(path, con);
+			break;
+		}
+		case Origin::RFC7951: {
+			path->set_origin(ORIGIN_RFC7951);
+			add_path_elem(path, prefix);
+			break;
+		}
+		case Origin::LEGACY: {
+			path->set_origin(ORIGIN_LEGACY);
+			add_path_elem(path, prefix);
+			break;
+		}
+		default: {
+			std::string msg = "parse_prefix_to_path: parse_prefix_to_path: Prefixing mode not supported.";
+			YLOG_ERROR(msg.c_str());
+			throw new std::runtime_error(msg);
+		}
+	}
+}
+
+bool origin_is_prefix(const std::string& origin)
+{
+    return (origin.length() > 0 &&
+            origin.compare(ORIGIN_OPENCONFIG) != 0 &&
+            origin.compare(ORIGIN_RFC7951) != 0 &&
+            origin.compare(ORIGIN_LEGACY) == 0);
 }
 
 namespace path {
@@ -317,7 +356,7 @@ static path::DataNode* get_last_datanode(DataNode* dn)
     return dn;
 }
 
-void parse_datanode_to_path(DataNode* dn, gnmi::Path* path)
+void parse_datanode_to_path(DataNode* dn, Origin origin, gnmi::Path* path)
 {
     path::DataNode* last_datanode = get_last_datanode(dn);
     string full_path = last_datanode->get_path();
@@ -327,7 +366,7 @@ void parse_datanode_to_path(DataNode* dn, gnmi::Path* path)
 
     // Add origin and first container to the path
     auto s = segments[1];
-    parse_prefix_to_path(s, path);
+    parse_prefix_to_path(s, origin, path);
 
     // Add the rest of the segments to the path
     for (size_t i=2; i < segments.size(); i++) {

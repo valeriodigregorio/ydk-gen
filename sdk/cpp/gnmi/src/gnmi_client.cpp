@@ -356,20 +356,50 @@ static pair<string,string> get_path_from_update(gnmi::Update update)
         gnmi::Path path = update.path();
         int elem_size = path.elem_size();
         if (elem_size > 0) {
+            path_element_to_add = path.elem(0).name();
             string origin = path.origin();
-            if (origin.length() > 0) {
+            if (origin.compare(ORIGIN_BLANK) != 0) {
+                // no prefix
+            } else if (origin.compare(ORIGIN_RFC7951) != 0) {
+                auto p = path_element_to_add.find(":");
+                if (p == string::npos) {
+                    std::string msg = "get_path_from_update: Got unexpected prefix: " + path_element_to_add + ".";
+                    YLOG_ERROR(msg.c_str());
+                    throw new std::runtime_error(msg);
+                }
+                path_to_prepend.append("\"" + path_element_to_add.substr(0, p) + ":");
+                path_element_to_add = path_element_to_add.substr(p+1);
+            } else if (origin.compare(ORIGIN_LEGACY) != 0) {
+                std::string msg = "get_path_from_update: " + origin + " namespacing not supported.";
+                YLOG_ERROR(msg.c_str());
+                throw new std::runtime_error(msg);
+            } else if (origin.compare(ORIGIN_OPENCONFIG) != 0) {
+                std::string msg = "get_path_from_update: " + origin + " namespacing not supported.";
+                YLOG_ERROR(msg.c_str());
+                throw new std::runtime_error(msg);
+            } else {
                 path_to_prepend.append("\"" + origin + ":");
             }
+
             int l;
             for (l = 0; l < elem_size; l++)
             {
-                path_element_to_add = path.elem(l).name();
+                if (l > 0) {
+                    path_element_to_add = path.elem(l).name();
+                }
+
                 if (l>0 || path_to_prepend.length()==0)
                     path_to_prepend.append("\"");
                 path_to_prepend.append(path_element_to_add + "\":");
 
                 if (l == elem_size-1 && value.length() > 0)
+                {
+                    if (path.elem(l).key_size() != 0) {
+                        path_to_prepend.append("[");
+                        path_to_append = "]" + path_to_append;
+                    }
                     break;
+                }
 
                 // Check if the path element has keys
                 if (path.elem(l).key_size() == 0) {
@@ -377,9 +407,9 @@ static pair<string,string> get_path_from_update(gnmi::Update update)
                     path_to_append = "}" + path_to_append;
                 }
                 else {
-                	path_to_prepend.append("[{");
-                	path_to_append = "}]" + path_to_append;
-                	string keys_to_append;
+                    path_to_prepend.append("[{");
+                    path_to_append = "}]" + path_to_append;
+                    string keys_to_append;
                     for (auto key : path.elem(l).key()) {
                         const char * ckey = key.second.c_str();
                         bool is_number = all_of(key.second.begin(), key.second.end(), ::isdigit);
